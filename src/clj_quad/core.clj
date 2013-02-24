@@ -1,5 +1,5 @@
 (ns clj-quad.core
-  (:refer-clojure :exclude [children insert])
+  (:refer-clojure :exclude [children insert root])
   (:require [clojure.zip :as zip]))
 
 
@@ -200,6 +200,15 @@
                 zip/root
                 map-zipper))))))))
 
+(defn insert-children
+  "Add a list of children to a given quadtree. Takes the tree root and a seq of children."
+  [root & children]
+  (reduce
+      (fn [quad child]
+        (insert quad child))
+      root
+      (flatten (into [] children))))
+
 (defn retrieve-point
 "Retrieves all items / points in the same node as the specified item / point. If the specified item
  overlaps the bounds of a node, then all children in both nodes will be returned.
@@ -243,18 +252,21 @@
           []
           points)))))
 
-
+(defn quadtree
+  "Creates a quadtree. Takes a map defining the root node of the tree.
+  The root should have a :bounds entry with a map of bounds data (x, y, width, height)."
+  [root]
+  (map-zipper (bounds-node root)))
 
 
 
 (comment
   (def quad
-    (map-zipper
-      (bounds-node
-        {:depth 0
-         :bounds
-          {:x 0 :y 0 :width 1000 :height 1000}
-         :nodes []})))
+    (quadtree
+      {:depth 0
+       :bounds
+        {:x 0 :y 0 :width 1000 :height 1000}
+       :nodes []}))
 
   (defn insert-random-children [quad n]
     (reduce
@@ -262,6 +274,7 @@
         (insert quad (rand-node)))
       quad
       (range n)))
+
 
   (def updated-quad (insert-random-children quad 100))
 
