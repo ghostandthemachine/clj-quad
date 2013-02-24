@@ -4,13 +4,15 @@ Clj-quad is a purely functional implementation of the [Quadtree](http://en.wikip
 
 ![Quadtree bounds from wikipedia](http://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Point_quadtree.svg/300px-Point_quadtree.svg.png)
 
-This structure allows for fast look up and retrieval of elements based on location and/or area. This is especially beneficial for tasks like collision detection on many shapes. Given a tree and a map of position and dimensions, clj-quad will return a small list of elements in the relevant quadrant.
+This structure allows for fast look up and retrieval of elements based on location and/or area. This is especially beneficial for tasks like collision detection on many shapes. This library is directly inspired by Mike Chambers' [post](http://www.mikechambers.com/blog/2011/03/21/javascript-quadtree-implementation/) and [javascript implementation](https://github.com/mikechambers/ExamplesByMesh/tree/master/JavaScript/QuadTree). Clj-quad provides a purely functional Quadtree through the use of the [clojure zipper](http://richhickey.github.com/clojure/clojure.zip-api.html) library.
+
+Clj-quad is compatible with both Clojure and Clojurescript.
 
 Note: This library is very much in beta so changes are likely.
 
 # Usage
 
-For leiningen
+[Leiningen](https://github.com/technomancy/leiningen)
 ````clojure
 [clj-quad "0.1.0-beta"]
 ````
@@ -114,6 +116,8 @@ nil
 ````
 
 ## Retrieval
+
+Given a tree and a map of position and dimensions, clj-quad will return a list of elements in the relevant quadrant.
 
 Retrieve elements from a quad based on a point
 
