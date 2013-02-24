@@ -40,6 +40,7 @@ Create a new quadtree with a specified dimension.
   :depth 0}
  nil]
 ````
+## Insertion
 
 Create some elements to insert
 
@@ -52,8 +53,6 @@ Create some elements to insert
                   {:bounds (bounds 346 124 8 8)}
                   {:bounds (bounds 15 900 8 8)}])
 ````
-
-## Insertion
 
 Insert single elements with insert or a seq of elements with insert-children
 
@@ -122,7 +121,7 @@ Given a tree and a map of position and dimensions, clj-quad will return a list o
 Retrieve elements from a quad based on a point
 
 ````clojure
-=> (retrieve-point quad {:bounds (bounds 100 100 1 1)})
+=> (retrieve-point quad {:bounds (point 100 100)})
 
 ({:bounds {:width 10, :y 100, :x 50, :height 5}}
  {:bounds {:x 200, :y 150, :width 8, :height 8}}
@@ -132,7 +131,7 @@ Retrieve elements from a quad based on a point
 or retrieve elements based on a rectangle
 
 ````clojure
-=> (retrieve-rect quad {:bounds (bounds 100 100 600 600)})
+=> (retrieve-rect quad (rect 100 100 600 600))
 
 ({:bounds {:width 10, :y 100, :x 50, :height 5}}
  {:bounds {:x 200, :y 150, :width 8, :height 8}}
