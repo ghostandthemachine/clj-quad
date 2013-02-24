@@ -7,11 +7,11 @@ Clj-quad is a purely functional implementation of the [Quadtree](http://en.wikip
 This structure allows for fast look up and retrieval of elements based on location and/or area. This is especially beneficial for tasks like collision detection on many shapes. Given a tree and a map of position and dimensions, clj-quad will return a small list of elements in the relevant quadrant.
 
 
-# usage
+# Usage
 
-## creation
+## Creation
 
-create a new quadtree with a specified dimension.
+Create a new quadtree with a specified dimension.
 
 ````clojure
 => (def quad
@@ -33,7 +33,7 @@ create a new quadtree with a specified dimension.
  nil]
 ````
 
-create some elements to insert
+Create some elements to insert
 
 ````clojure
 => (def elements [{:bounds {:x 50 :y 100 :width 10 :height 5}}
@@ -47,7 +47,7 @@ create some elements to insert
 
 ## insertion
 
-insert single elements with insert or a seq of elements with insert-children
+Insert single elements with insert or a seq of elements with insert-children
 
 ````clojure
 => (insert quad {:bounds (bounds 200 800 8 8)})
@@ -109,7 +109,7 @@ nil
 
 ## retrieval
 
-retrieve elements from a quad based on a point
+Retrieve elements from a quad based on a point
 
 ````clojure
 => (retrieve-point quad {:bounds (bounds 100 100 1 1)})
