@@ -10,6 +10,11 @@ Note: This library is very much in beta so changes are likely.
 
 # Usage
 
+For leiningen
+````clojure
+[clj-quad "0.1.0-beta"]
+````
+
 ## Creation
 
 Create a new quadtree with a specified dimension.

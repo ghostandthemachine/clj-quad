@@ -1,5 +1,5 @@
-(defproject clj-quad "0.1.0-SNAPSHOT"
-  :description "FIXME: write description"
+(defproject clj-quad "0.1.0-beta"
+  :description "A functional quadtree for spatial mapping in Clojure and Clojurescript."
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
             :url "http://www.eclipse.org/legal/epl-v10.html"}
