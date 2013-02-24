@@ -1,6 +1,6 @@
 # clj-quad
 
-Clj-quad is a purely functional implementation of the Quadtree[http://en.wikipedia.org/wiki/Quadtree] data structure. Quadtrees are commonly used for spatial partitioning of two dimensional space for fast lookup of elements based on location. As elements are inserted into the tree, the tree subdivides recursively into four quadrants until specified a maximum depth is reached. This essentially means that every time a fifth elements is inserted into a quadrant the quadrant is subdivided into four child quadrants and the child elements are redistributed.
+Clj-quad is a purely functional implementation of the [Quadtree](http://en.wikipedia.org/wiki/Quadtree) data structure. Quadtrees are commonly used for spatial partitioning of two dimensional space for fast lookup of elements based on location. As elements are inserted into the tree, the tree subdivides recursively into four quadrants until specified a maximum depth is reached. This essentially means that every time a fifth elements is inserted into a quadrant the quadrant is subdivided into four child quadrants and the child elements are redistributed.
 
 ![Quadtree bounds from wikipedia](http://upload.wikimedia.org/wikipedia/commons/thumb/8/8b/Point_quadtree.svg/300px-Point_quadtree.svg.png)
 
