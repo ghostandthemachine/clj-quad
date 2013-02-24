@@ -14,118 +14,123 @@ This structure allows for fast look up and retrieval of elements based on locati
 create a new quadtree with a specified dimension.
 
 ````clojure
-    => (def quad
-         (quadtree
-           {:depth 0
-            :bounds
-             {:x 0 :y 0 :width 1000 :height 1000}
-            :nodes []}))
+=> (def quad
+     (quadtree
+       {:depth 0
+        :bounds
+         {:x 0 :y 0 :width 1000 :height 1000}
+        :nodes []}))
 
-    => (pprint quad)
+=> (pprint quad)
 
-    [{:bounds {:width 1000, :y 0, :x 0, :height 1000},
-      :children [],
-      :step-children [],
-      :nodes [],
-      :max-depth 4,
-      :max-children 4,
-      :depth 0}
-     nil]
+[{:bounds {:width 1000, :y 0, :x 0, :height 1000},
+  :children [],
+  :step-children [],
+  :nodes [],
+  :max-depth 4,
+  :max-children 4,
+  :depth 0}
+ nil]
+````
 
 create some elements to insert
 
 ````clojure
-    => (def elements [{:bounds {:x 50 :y 100 :width 10 :height 5}}
-                      ;; or use the bounds function
-                      {:bounds (bounds 200 150 8 8)}
-                      {:bounds (bounds 200 800 8 8)}
-                      {:bounds (bounds 790 434 8 8)}
-                      {:bounds (bounds 346 124 8 8)}
-                      {:bounds (bounds 15 900 8 8)}])
+=> (def elements [{:bounds {:x 50 :y 100 :width 10 :height 5}}
+                  ;; or use the bounds function
+                  {:bounds (bounds 200 150 8 8)}
+                  {:bounds (bounds 200 800 8 8)}
+                  {:bounds (bounds 790 434 8 8)}
+                  {:bounds (bounds 346 124 8 8)}
+                  {:bounds (bounds 15 900 8 8)}])
+````
 
 ## insertion
 
 insert single elements with insert or a seq of elements with insert-children
 
 ````clojure
-    => (insert quad {:bounds (bounds 200 800 8 8)})
+=> (insert quad {:bounds (bounds 200 800 8 8)})
 
-    [{:bounds {:width 1000, :y 0, :x 0, :height 1000},
-      :children [{:bounds {:x 200, :y 800, :width 8, :height 8}}],
-      :step-children [],
-      :nodes [],
-      :max-depth 4,
-      :max-children 4,
-      :depth 0}
-     nil]
-    nil
+[{:bounds {:width 1000, :y 0, :x 0, :height 1000},
+  :children [{:bounds {:x 200, :y 800, :width 8, :height 8}}],
+  :step-children [],
+  :nodes [],
+  :max-depth 4,
+  :max-children 4,
+  :depth 0}
+ nil]
+nil
 
-    => (insert-children quad elements)
+=> (insert-children quad elements)
 
-    [{:bounds {:width 1000, :y 0, :x 0, :height 1000},
-      :children (),
-      :step-children [],
-      :nodes
-      ({:bounds {:x 0, :y 0, :width 500, :height 500},
-        :children
-        [{:bounds {:width 10, :y 100, :x 50, :height 5}}
-         {:bounds {:x 200, :y 150, :width 8, :height 8}}
-         {:bounds {:x 346, :y 124, :width 8, :height 8}}],
-        :step-children [],
-        :nodes [],
-        :max-depth 4,
-        :max-children 4,
-        :depth 1}
-       {:bounds {:x 500, :y 0, :width 500, :height 500},
-        :children [{:bounds {:x 790, :y 434, :width 8, :height 8}}],
-        :step-children [],
-        :nodes [],
-        :max-depth 4,
-        :max-children 4,
-        :depth 1}
-       {:bounds {:x 0, :y 500, :width 500, :height 500},
-        :children
-        [{:bounds {:x 200, :y 800, :width 8, :height 8}}
-         {:bounds {:x 15, :y 900, :width 8, :height 8}}],
-        :step-children [],
-        :nodes [],
-        :max-depth 4,
-        :max-children 4,
-        :depth 1}
-       {:bounds {:x 500, :y 500, :width 500, :height 500},
-        :children [],
-        :step-children [],
-        :nodes [],
-        :max-depth 4,
-        :max-children 4,
-        :depth 1}),
-      :max-depth 4,
-      :max-children 4,
-      :depth 0}
-     nil]
+[{:bounds {:width 1000, :y 0, :x 0, :height 1000},
+  :children (),
+  :step-children [],
+  :nodes
+  ({:bounds {:x 0, :y 0, :width 500, :height 500},
+    :children
+    [{:bounds {:width 10, :y 100, :x 50, :height 5}}
+     {:bounds {:x 200, :y 150, :width 8, :height 8}}
+     {:bounds {:x 346, :y 124, :width 8, :height 8}}],
+    :step-children [],
+    :nodes [],
+    :max-depth 4,
+    :max-children 4,
+    :depth 1}
+   {:bounds {:x 500, :y 0, :width 500, :height 500},
+    :children [{:bounds {:x 790, :y 434, :width 8, :height 8}}],
+    :step-children [],
+    :nodes [],
+    :max-depth 4,
+    :max-children 4,
+    :depth 1}
+   {:bounds {:x 0, :y 500, :width 500, :height 500},
+    :children
+    [{:bounds {:x 200, :y 800, :width 8, :height 8}}
+     {:bounds {:x 15, :y 900, :width 8, :height 8}}],
+    :step-children [],
+    :nodes [],
+    :max-depth 4,
+    :max-children 4,
+    :depth 1}
+   {:bounds {:x 500, :y 500, :width 500, :height 500},
+    :children [],
+    :step-children [],
+    :nodes [],
+    :max-depth 4,
+    :max-children 4,
+    :depth 1}),
+  :max-depth 4,
+  :max-children 4,
+  :depth 0}
+ nil]
+````
 
 ## retrieval
 
 retrieve elements from a quad based on a point
 
 ````clojure
-    => (retrieve-point quad {:bounds (bounds 100 100 1 1)})
+=> (retrieve-point quad {:bounds (bounds 100 100 1 1)})
 
-    ({:bounds {:width 10, :y 100, :x 50, :height 5}}
-     {:bounds {:x 200, :y 150, :width 8, :height 8}}
-     {:bounds {:x 346, :y 124, :width 8, :height 8}})
+({:bounds {:width 10, :y 100, :x 50, :height 5}}
+ {:bounds {:x 200, :y 150, :width 8, :height 8}}
+ {:bounds {:x 346, :y 124, :width 8, :height 8}})
+````
 
 or retrieve elements based on a rectangle
 
 ````clojure
-    => (retrieve-rect quad {:bounds (bounds 100 100 600 600)})
+=> (retrieve-rect quad {:bounds (bounds 100 100 600 600)})
 
-    ({:bounds {:width 10, :y 100, :x 50, :height 5}}
-     {:bounds {:x 200, :y 150, :width 8, :height 8}}
-     {:bounds {:x 346, :y 124, :width 8, :height 8}}
-     {:bounds {:x 790, :y 434, :width 8, :height 8}}
-     {:bounds {:x 200, :y 800, :width 8, :height 8}}
-     {:bounds {:x 15, :y 900, :width 8, :height 8}})
+({:bounds {:width 10, :y 100, :x 50, :height 5}}
+ {:bounds {:x 200, :y 150, :width 8, :height 8}}
+ {:bounds {:x 346, :y 124, :width 8, :height 8}}
+ {:bounds {:x 790, :y 434, :width 8, :height 8}}
+ {:bounds {:x 200, :y 800, :width 8, :height 8}}
+ {:bounds {:x 15, :y 900, :width 8, :height 8}})
+````
 
 In the future paths will be supported as well as primitive shape areas.
 
