@@ -49,9 +49,10 @@ Create some elements to insert
                   ;; or use the bounds function
                   {:bounds (bounds 200 150 8 8)}
                   {:bounds (bounds 200 800 8 8)}
-                  {:bounds (bounds 790 434 8 8)}
-                  {:bounds (bounds 346 124 8 8)}
-                  {:bounds (bounds 15 900 8 8)}])
+                  ;; or the rect helper function
+                  (rect 790 434 8 8)
+                  (rect 346 124 8 8)
+                  (rect 15 900 8 8)])
 ````
 
 Insert single elements with insert or a seq of elements with insert-children
@@ -121,7 +122,7 @@ Given a tree and a map of position and dimensions, clj-quad will return a list o
 Retrieve elements from a quad based on a point
 
 ````clojure
-=> (retrieve-point quad {:bounds (point 100 100)})
+=> (retrieve-point quad (point 100 100))
 
 ({:bounds {:width 10, :y 100, :x 50, :height 5}}
  {:bounds {:x 200, :y 150, :width 8, :height 8}}
