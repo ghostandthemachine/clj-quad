@@ -1,5 +1,6 @@
 (ns clj-quad.core
-  (:refer-clojure :exclude [children insert root])
+  (:use [clj-quad.collision])
+  (:refer-clojure :exclude [children insert root contains?])
   (:require [clojure.zip :as zip]))
 
 
@@ -96,11 +97,11 @@
 
 (defn rand-node
   "Creates a random item for insertion. Mostly for testing."
-  []
+  [max-x max-y]
   {:bounds
     {:id (node-count)
-     :x (rand-int 1000)
-     :y (rand-int 1000)
+     :x (rand-int max-x)
+     :y (rand-int max-y)
      :width (+ 5 (rand-int 10))
      :height (+ 5 (rand-int 10))}})
 
@@ -273,13 +274,12 @@
     (quadtree
       {:depth 0
        :bounds
-        {:x 0 :y 0 :width 1000 :height 1000}
-       :nodes []}))
+        {:x 0 :y 0 :width 1000 :height 1000}}))
 
   (defn insert-random-children [quad n]
     (reduce
       (fn [quad i]
-        (insert quad (rand-node)))
+        (insert quad (rand-node 1000 1000)))
       quad
       (range n)))
 
@@ -289,4 +289,3 @@
   (doseq [child (retrieve-rect updated-quad {:bounds (bounds 250 250 50 500)})]
     (println child))
   )
-
