@@ -1,7 +1,8 @@
 (ns clj-quad.core
-  (:use [clj-quad.collision])
   (:refer-clojure :exclude [children insert root contains?])
-  (:require [clojure.zip :as zip]))
+  (:require [clojure.zip :as zip]
+            [clojure.pprint :as pprint]
+            [clj-quad.collision :refer :all]))
 
 
 ; ;========================================================================================
@@ -32,7 +33,7 @@
   (merge
     {:bounds         {:x nil :y nil :width nil :height nil}
      :children       []
-     :step-children []
+     :step-children  []
      :nodes          []
      :max-depth      4
      :max-children   4
@@ -86,7 +87,7 @@
   [n children]
   (assoc n :nodes children))
 
-(defn map-zipper
+(defn quad-zipper
   "Helper function for wrapping quad tree map with a zipper."
   [root-node]
   (zip/zipper tree-branch? :nodes node-adder root-node))
@@ -98,9 +99,9 @@
 (defn rand-node
   "Creates a random item for insertion. Mostly for testing."
   [max-x max-y]
-  {:bounds
-    {:id (node-count)
-     :x (rand-int max-x)
+  {:id (node-count)
+   :bounds
+    {:x (rand-int max-x)
      :y (rand-int max-y)
      :width (+ 5 (rand-int 10))
      :height (+ 5 (rand-int 10))}})
@@ -138,12 +139,24 @@
 
 (defn remove-item
   "Remove an item from a given node."
-  [node item]
+  [node item child-type]
+  ; (println "remove-item" item child-type)
   (-> node
     (zip/edit
       (fn [n]
-        (update-in n [:children]
+        (update-in n [child-type]
           (fn [children] (filter #(not= item %) children)))))))
+
+(defn remove-item-by-id
+  [node id child-type]
+  (let [match-child (fn [child id]
+                      (not= id (:id child)))
+        filter-out-child (fn [items id]
+                          (filter #(match-child % id) items))
+        children (filter-out-child (child-type node) id)]
+    (-> node
+      (zip/edit #(assoc % child-type children)))))
+
 
 (defn insert
   "Recursively insert a new item into a given node. This function also manages the division of parent nodes."
@@ -154,7 +167,7 @@
       ; if this node has NO sub nodes, add the new item to children.
       ; Check if there are more than max-children. If so, subdivide this node and insert into the children
       (do
-        (let [children          (conj (:children node) item)
+        (let [children       (conj (:children node) item)
               child-count    (count children)
               subdivide?     (and
                                 (not (>= (:depth node) (:max-depth node)))
@@ -164,7 +177,7 @@
           (let [divided-node (subdivide-node (zip/edit node-zip #(assoc % :children [])))
                 remove-reinsert (fn [n child-item]
                                       (-> n
-                                        (remove-item child-item)
+                                        (remove-item child-item :children)
                                         (insert child-item)))
                 reinsert-children (fn [node]
                                       (reduce
@@ -174,13 +187,15 @@
             (-> divided-node
               reinsert-children
               zip/root
-              map-zipper))
+              quad-zipper))
           ;; otherwise just add the item and return.
           (do
             (-> node-zip
               (zip/edit #(assoc % :children children))
               zip/root
-              map-zipper)))))
+              (update-in [:lookup-table] assoc (:id item) item)
+              quad-zipper
+              )))))
       ; else if this node has sub nodes, find which node the new item
       ; will be inserted into and call recursive insert.
       (do
@@ -207,7 +222,8 @@
               (-> node-zip
                 (zip/edit #(assoc % :step-children step-children))
                 zip/root
-                map-zipper))))))))
+                (update-in [:lookup-table] assoc (:id item) item)
+                quad-zipper))))))))
 
 (defn insert-children
   "Add a list of children to a given quadtree. Takes the tree root and a seq of children."
@@ -261,31 +277,125 @@
           []
           points)))))
 
+(defn lookup-child
+  [node id]
+  (get (:lookup-table node) id))
+
+(defn remove-from-lookup-table
+  [quad-zip child]
+  (-> quad-zip
+    (zip/edit (fn [n]
+                (println "in remove-from-lookup-table " n)
+                (update-in n [:lookup-table] dissoc (:id child) child))))
+  )
+
+(defn remove-child
+  ([quad-zip id]
+  (remove-child quad-zip id (lookup-child (zip/root quad-zip) id)))
+  ([quad-zip id child]
+    (let [node (zip/node quad-zip)]
+      (cond
+        (not (empty? (:nodes node)))
+          (do
+            ; (println "default remove-child")
+              (remove-child (-> quad-zip zip/down) id child)
+              (remove-child (-> quad-zip zip/down zip/right) id child)
+              (remove-child (-> quad-zip zip/down zip/right zip/right) id child)
+              (remove-child (-> quad-zip zip/down zip/right zip/right zip/right) id child))
+        (filter #(= (:id %) id) (:children node))
+          (do
+            ; (println "remove child" id child)
+              (println "remove-child call up" quad-zip)
+            (let [_ (println)
+                  _ (println)
+                  _ (println "before without-child" quad-zip)
+                  without-child (remove-item-by-id quad-zip id :children)
+                  _ (println)
+                  _ (println "without-child" without-child)
+                  _ (println)
+                  _ (println)
+                  _ (println)
+                  without-lookup (remove-from-lookup-table without-child child)]
+              (println "before" quad-zip)
+              (println "after" without-child)
+              (println "after" without-lookup)
+              (-> without-lookup
+                zip/root
+                quad-zipper)
+            ))
+        (filter #(= (:id %) id) (:step-children node))
+          (do
+            ; (println "remove step-child" id child)
+            (-> quad-zip
+              (remove-item-by-id id :step-children)
+              zip/root
+              (remove-from-lookup-table child)
+              quad-zipper)
+            )))))
+
+(defn update-child
+  [quad-zip child]
+  (-> quad-zip
+    (remove-child (:id child))
+    (insert child)))
+
 (defn quadtree
   "Creates a quadtree. Takes a map defining the root node of the tree.
   The root should have a :bounds entry with a map of bounds data (x, y, width, height)."
   [root]
-  (map-zipper (bounds-node root)))
+  (quad-zipper (bounds-node (merge root {:lookup-table {}}))))
 
 
+
+; (reduce
+;   (fn [nodes node]
+;     (-> quad-zip
+;       (zip/edit #()))
+
+; (defn draw-bounds
+;   [quad-zip node-fn & args]
+;   (let [n (zip/node quad-zip)
+;         node (-> quad-zip
+;                (zip/edit node-fn args))]
+
+;     (if (empty? (:nodes node))
+;       (do
+;         (draw-bounds (-> quad-zip zip/down) args)
+;         (draw-bounds (-> quad-zip zip/down zip/right) args)
+;         (draw-bounds (-> quad-zip zip/down zip/right zip/right) args)
+;         (draw-bounds (-> quad-zip zip/down zip/right zip/right zip/right) args)))))
+
+
+
+(defn insert-random-children [quad n]
+  (reduce
+    (fn [quad i]
+      (insert quad (rand-node 1000 1000)))
+    quad
+    (range n)))
 
 (comment
-  (def quad
-    (quadtree
-      {:depth 0
-       :bounds
-        {:x 0 :y 0 :width 1000 :height 1000}}))
 
-  (defn insert-random-children [quad n]
-    (reduce
-      (fn [quad i]
-        (insert quad (rand-node 1000 1000)))
-      quad
-      (range n)))
+  (let [quad (quadtree
+              {:depth 0
+               :bounds
+                {:x 0 :y 0 :width 1000 :height 1000}})
+        quad (insert-random-children quad 100)]
 
+    (println
+      (map #(apply dissoc % [:children :step-children]) (reduce into quad))
+       ))
+()
 
-  (def updated-quad (insert-random-children quad 100))
-
-  (doseq [child (retrieve-rect updated-quad {:bounds (bounds 250 250 50 500)})]
-    (println child))
   )
+
+
+
+(defn my-foo [] (println "boner"))
+
+(my-foo)
+
+
+(let [my-val 100
+      ]
+  my-val)

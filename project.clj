@@ -1,4 +1,4 @@
-(defproject clj-quad "0.1.0-beta"
+(defproject clj-quad "0.1.1-beta"
   :description "A functional Quadtree for spatial mapping and searching in Clojure and Clojurescript."
   :url "http://example.com/FIXME"
   :license {:name "Eclipse Public License"
