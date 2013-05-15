@@ -3,10 +3,11 @@
             [clj-quad.shape :as shape]
             [clojure.pprint])
   (:use [clojure.test]
-        [clj-quad.core]))
+        [clj-quad.core]
+        [clj-quad.util]))
 
-; (defn insert-random-children [quad n]
-;   (reduce (fn [quad _] (insert quad (rand-node 1000 1000))) quad (range n)))
+(defn insert-random-children [quad n]
+  (reduce (fn [quad _] (insert quad (rand-node 1000 1000))) quad (range n)))
 
 (def quad
   (quadtree

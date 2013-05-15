@@ -1,9 +1,65 @@
 (ns clj-quad.core
   (:refer-clojure :exclude [children insert root contains?])
-  (:require [clojure.zip :as zip]
-            [clojure.pprint :as pprint]
-            [clj-quad.collision :refer :all]))
+  (:require [clojure.zip :as zip])
+  (:use [clj-quad.util]))
 
+
+(defn in-from-left?
+  [bounds point]
+  (>= (first point) (:x bounds)))
+
+(defn in-from-right?
+  [bounds point]
+  (<= (first point) (+ (:x bounds) (:width bounds))))
+
+(defn in-from-top?
+  [bounds point]
+  (>= (second point) (:y bounds)))
+
+(defn in-from-bottom?
+  [bounds point]
+  (<= (second point) (+ (:y bounds) (:height bounds))))
+
+(defn contains-point?
+  [bounds point]
+  (let [left?     (in-from-left? bounds point)
+        right?    (in-from-right? bounds point)
+        top?      (in-from-top? bounds point)
+        bottom?   (in-from-bottom? bounds point)
+        in-bounds [left? right? top? bottom?]]
+    (reduce #(and %1 %2) in-bounds)))
+
+(defn intersection
+  [s1 s2]
+  (let [bounds1 (:bounds s1)
+        bounds2 (:bounds s2)
+        p1      [(:x bounds2) (:y bounds2)]
+        p2      [(+ (:x bounds2) (:width bounds2)) (:y bounds2)]
+        p3      [(+ (:x bounds2) (:width bounds2)) (+ (:y bounds2) (:height bounds2))]
+        p4      [(:x bounds2) (+ (:y bounds2) (:height bounds2))]
+        points  [p1 p2 p3 p4]]
+    (do
+      (map #(contains-point? (:bounds s1) %) points))))
+
+(defn intersects?
+  [s1 s2]
+  (not
+    (nil?
+      (some #{true} (intersection s1 s2)))))
+
+(defn contains-shape?
+  [s1 s2]
+  (reduce
+    #(and %1 %2)
+    (intersection s1 s2)))
+
+(defn get-intersecting-shapes
+  [shape shapes]
+  (filter #(intersects? shape %) shapes))
+
+(defn get-containing-shapes
+  [shape shapes]
+  (filter #(contains-shape? shape %) shapes))
 
 ; ;========================================================================================
 ; ; Node
@@ -70,13 +126,25 @@
         TOP_RIGHT
         BOTTOM_RIGHT))))
 
-(defn print-tree [original]
-  (loop [loc (zip/seq-zip (seq original))]
-    (if (zip/end? loc)
-      (zip/root loc)
-      (recur (zip/next
-                (do (println (zip/node loc))
-                    loc))))))
+; (defn print-tree [original]
+;   (loop [loc (zip/seq-zip (seq original))]
+;     (if (zip/end? loc)
+;       (zip/root loc)
+;       (recur (zip/next
+;                 (do (println (zip/node loc))
+;                     loc))))))
+
+
+(defn do-tree
+  [quad-zip tree-fn]
+  (let [node (zip/node quad-zip)]
+    (when (empty? (:nodes node))
+      (tree-fn node)
+      (do
+        (do-tree (-> quad-zip zip/down) tree-fn)
+        (do-tree (-> quad-zip zip/down zip/right) tree-fn)
+        (do-tree (-> quad-zip zip/down zip/right zip/right) tree-fn)
+        (do-tree (-> quad-zip zip/down zip/right zip/right zip/right) tree-fn)))))
 
 (defn tree-branch?
   [n]
@@ -91,20 +159,6 @@
   "Helper function for wrapping quad tree map with a zipper."
   [root-node]
   (zip/zipper tree-branch? :nodes node-adder root-node))
-
-(def node-counter (atom 0))
-
-(defn node-count [] (swap! node-counter inc))
-
-(defn rand-node
-  "Creates a random item for insertion. Mostly for testing."
-  [max-x max-y]
-  {:id (node-count)
-   :bounds
-    {:x (rand-int max-x)
-     :y (rand-int max-y)
-     :width (+ 5 (rand-int 10))
-     :height (+ 5 (rand-int 10))}})
 
 
 (defn subdivide-node
@@ -243,20 +297,19 @@
   (let [node (zip/node node-zip)
         children (concat
                   (:children node)
-                  (:stuck-children node))]
+                  (:step-children node))]
     (if (empty? (:nodes node))
       children
       (let [node-index (find-index node item)
-            node-children
-              (cond
-                (= node-index TOP_LEFT)
-                  (retrieve-point (-> node-zip zip/down) item)
-                (= node-index TOP_RIGHT)
-                  (retrieve-point (-> node-zip zip/down zip/right) item)
-                (= node-index BOTTOM_LEFT)
-                  (retrieve-point (-> node-zip zip/down zip/right zip/right) item)
-                (= node-index BOTTOM_RIGHT)
-                  (retrieve-point (-> node-zip zip/down zip/right zip/right zip/right) item))]
+            node-children (cond
+                            (= node-index TOP_LEFT)
+                              (retrieve-point (-> node-zip zip/down) item)
+                            (= node-index TOP_RIGHT)
+                              (retrieve-point (-> node-zip zip/down zip/right) item)
+                            (= node-index BOTTOM_LEFT)
+                              (retrieve-point (-> node-zip zip/down zip/right zip/right) item)
+                            (= node-index BOTTOM_RIGHT)
+                              (retrieve-point (-> node-zip zip/down zip/right zip/right zip/right) item))]
         (concat children node-children)))))
 
 
@@ -268,14 +321,15 @@
         points [[(:x item-bounds) (:y item-bounds)]
                 [(+ (:x item-bounds) (:width item-bounds)) (:y item-bounds)]
                 [(:x item-bounds) (+ (:y item-bounds) (:height item-bounds))]
-                [(+ (:x item-bounds) (:width item-bounds)) (+ (:y item-bounds) (:height item-bounds))]]]
-    (flatten
-      (distinct
-        (reduce
-          (fn [children [x y]]
-            (conj children (retrieve-point node-zip {:bounds (bounds x y 1 1)})))
-          []
-          points)))))
+                [(+ (:x item-bounds) (:width item-bounds)) (+ (:y item-bounds) (:height item-bounds))]]
+        retrieved-items (flatten
+                          (distinct
+                            (reduce
+                              (fn [children [x y]]
+                                (conj children (retrieve-point node-zip {:bounds (bounds x y 1 1)})))
+                              []
+                              points)))]
+    (distinct retrieved-items)))
 
 (defn lookup-child
   [node id]
@@ -286,8 +340,7 @@
   (-> quad-zip
     (zip/edit (fn [n]
                 (println "in remove-from-lookup-table " n)
-                (update-in n [:lookup-table] dissoc (:id child) child))))
-  )
+                (update-in n [:lookup-table] dissoc (:id child) child)))))
 
 (defn remove-child
   ([quad-zip id]
@@ -297,41 +350,24 @@
       (cond
         (not (empty? (:nodes node)))
           (do
-            ; (println "default remove-child")
               (remove-child (-> quad-zip zip/down) id child)
               (remove-child (-> quad-zip zip/down zip/right) id child)
               (remove-child (-> quad-zip zip/down zip/right zip/right) id child)
               (remove-child (-> quad-zip zip/down zip/right zip/right zip/right) id child))
         (filter #(= (:id %) id) (:children node))
           (do
-            ; (println "remove child" id child)
-              (println "remove-child call up" quad-zip)
-            (let [_ (println)
-                  _ (println)
-                  _ (println "before without-child" quad-zip)
-                  without-child (remove-item-by-id quad-zip id :children)
-                  _ (println)
-                  _ (println "without-child" without-child)
-                  _ (println)
-                  _ (println)
-                  _ (println)
+            (let [without-child (remove-item-by-id quad-zip id :children)
                   without-lookup (remove-from-lookup-table without-child child)]
-              (println "before" quad-zip)
-              (println "after" without-child)
-              (println "after" without-lookup)
               (-> without-lookup
                 zip/root
-                quad-zipper)
-            ))
+                quad-zipper)))
         (filter #(= (:id %) id) (:step-children node))
           (do
-            ; (println "remove step-child" id child)
             (-> quad-zip
               (remove-item-by-id id :step-children)
               zip/root
               (remove-from-lookup-table child)
-              quad-zipper)
-            )))))
+              quad-zipper))))))
 
 (defn update-child
   [quad-zip child]
@@ -345,57 +381,3 @@
   [root]
   (quad-zipper (bounds-node (merge root {:lookup-table {}}))))
 
-
-
-; (reduce
-;   (fn [nodes node]
-;     (-> quad-zip
-;       (zip/edit #()))
-
-; (defn draw-bounds
-;   [quad-zip node-fn & args]
-;   (let [n (zip/node quad-zip)
-;         node (-> quad-zip
-;                (zip/edit node-fn args))]
-
-;     (if (empty? (:nodes node))
-;       (do
-;         (draw-bounds (-> quad-zip zip/down) args)
-;         (draw-bounds (-> quad-zip zip/down zip/right) args)
-;         (draw-bounds (-> quad-zip zip/down zip/right zip/right) args)
-;         (draw-bounds (-> quad-zip zip/down zip/right zip/right zip/right) args)))))
-
-
-
-(defn insert-random-children [quad n]
-  (reduce
-    (fn [quad i]
-      (insert quad (rand-node 1000 1000)))
-    quad
-    (range n)))
-
-(comment
-
-  (let [quad (quadtree
-              {:depth 0
-               :bounds
-                {:x 0 :y 0 :width 1000 :height 1000}})
-        quad (insert-random-children quad 100)]
-
-    (println
-      (map #(apply dissoc % [:children :step-children]) (reduce into quad))
-       ))
-()
-
-  )
-
-
-
-(defn my-foo [] (println "boner"))
-
-(my-foo)
-
-
-(let [my-val 100
-      ]
-  my-val)

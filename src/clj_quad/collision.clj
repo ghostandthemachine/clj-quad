@@ -1,6 +1,5 @@
 (ns clj-quad.collision
-  (:refer-clojure :exclude [contains? intersection])
-  (:require [clj-quad.shape :as shape]))
+  (:refer-clojure :exclude [contains? intersection]))
 
 (defn in-from-left?
   [bounds point]
